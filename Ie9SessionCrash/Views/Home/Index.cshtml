@@ -1,0 +1,92 @@
+﻿@{
+    ViewBag.Title = "Browser/session test page";
+}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Browser/session test page</title>
+        <script type="text/javascript" src="@Url.Content("~/Scripts/jquery-1.9.1.js")"></script>
+    </head>
+    <body>
+        <div>
+            <h2>Browser/session test page</h2>
+            <p id="config"></p>
+            <div id="target1"></div>
+            <div id="target2"></div>
+            <div id="target3"></div>
+            <div id="time"></div>
+            <div>
+                <p>Other configurations:</p>
+                <ul>
+                    <li>@Html.ActionLink("POST - RequiredSession", "Index", new { sessionState = "RequiredSession", type = "POST" })</li>
+                    <li>@Html.ActionLink("POST - ReadOnlySession", "Index", new { sessionState = "ReadOnlySession", type = "POST" })</li>
+                    <li>@Html.ActionLink("POST - DisabledSession", "Index", new { sessionState = "DisabledSession", type = "POST" })</li>
+                    <li>@Html.ActionLink("GET - RequiredSession", "Index", new { sessionState = "RequiredSession", type = "GET" })</li>
+                    <li>@Html.ActionLink("GET - ReadOnlySession", "Index", new { sessionState = "ReadOnlySession", type = "GET" })</li>
+                    <li>@Html.ActionLink("GET - DisabledSession", "Index", new { sessionState = "DisabledSession", type = "GET" })</li>
+                </ul>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            $(function () {
+                @{
+                    var controller = Request.QueryString["sessionState"] ?? "RequiredSession";
+                }
+                var controller = "@controller";
+                var url1 = "@Url.Action("Sleep1", controller)";
+                var url2 = "@Url.Action("Sleep5", controller)";
+                var url3 = "@Url.Action("Sleep5", controller)";
+        
+                var type = "@(Request.QueryString["type"] ?? "post")";
+
+                function getData() {
+                    var s = "";
+                    for (var i = 0; i < 1500; i++) {
+                        s += "x";
+                    }
+                    return { x: s };
+                }
+        
+                function startLoad(selector, url, delay, callback) {
+                    setTimeout(function () {
+                        $.ajax({
+                            cache: false,
+                            url: url,
+                            data: getData(),
+                            type: type,
+                            success: function (data) {
+                                selector.text("COMPLETED: " + data);
+                            },
+                            fail: function (data) {
+                                selector.text("FAILED: " + data);
+                            }
+                        });
+                        selector.text("started ajax " + type);
+                        if (callback)
+                            callback();
+                    }, delay);
+                }
+        
+                startLoad($("#target1"), url1, 1000);
+                startLoad($("#target2"), url2, 1500);
+                startLoad($("#target3"), url3, 2000, function() {
+                    setTimeout(function () {
+                        window.location = window.location;
+                    }, 100);
+
+                    var time = 0;
+                    setInterval(function () {
+                        time++;
+                        $("#time").text("Waiting for next page: " + (time / 10).toFixed(1) + " seconds");
+                        if(time > 200) {
+                            $("#time").css({ "background-color": "red", "color": "white", padding: "5px 10px" });
+                        }
+                    }, 100);
+                });
+                $("#config").text("Test scenario: 3 ajax " + type + "s to a controller with " + controller + ", 500ms apart, followed 100ms later by a click of a link targeting this page again.  It should take somewhere between 1s and 15s to load the next page.  If it takes more than that, we probably triggered the broken behavior.");
+                $("#time").text("Beginning test....");
+            });
+        </script>
+    </body>
+</html>
